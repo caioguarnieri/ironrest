@@ -11,12 +11,30 @@ const salt_rounds = 10;
 // Crud (CREATE) - HTTP POST
 // Criar um novo usuário
 router.post("/signup", async (req, res) => {
-  // Requisições do tipo POST tem uma propriedade especial chamada body, que carrega a informação enviada pelo cliente
-  console.log(req.body);
-
   try {
-    // Recuperar a senha que está vindo do corpo da requisição
-    const { password } = req.body;
+    // Recupera as informações necessárias do corpo da requisição
+    const { name, email, role, password } = req.body;
+
+    // Verifica se o nome não está em branco
+    if (!name || name.trim().length === 0) {
+      return res.status(400).json({
+        msg: "Name is required.",
+      });
+    }
+
+    // Verifica se o email não está em branco
+    if (!email || email.trim().length === 0) {
+      return res.status(400).json({
+        msg: "Email is required.",
+      });
+    }    
+    
+    // Verifica se o role não está em branco ou se é algo diferente do permitido
+    if (!role || !["ADMIN", "USER"].includes(role)) {
+      return res.status(400).json({
+        msg: "Role is required and must be ADMIN or USER.",
+      });
+    }    
 
     // Verifica se a senha não está em branco ou se a senha não é complexa o suficiente
     if (
@@ -31,6 +49,14 @@ router.post("/signup", async (req, res) => {
       });
     }
 
+    // Verifica se o email já está cadastrado
+    const emailExists = await UserModel.findOne({ email });
+    if (emailExists) {
+      return res.status(400).json({
+        msg: "Email already exists.",
+      });
+    }    
+
     // Gera o salt
     const salt = await bcrypt.genSalt(salt_rounds);
 
@@ -39,9 +65,14 @@ router.post("/signup", async (req, res) => {
 
     // Salva os dados de usuário no banco de dados (MongoDB) usando o body da requisição como parâmetro
     const result = await UserModel.create({
-      ...req.body,
+      name,
+      email,
+      role,
       passwordHash: hashedPassword,
     });
+
+    //Para não retornar a passwordHash
+    result.passwordHash = undefined;
 
     // Responder o usuário recém-criado no banco para o cliente (solicitante). O status 201 significa Created
     return res.status(201).json(result);
