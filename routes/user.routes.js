@@ -89,6 +89,20 @@ router.post("/login", async (req, res) => {
     // Extraindo o email e senha do corpo da requisição
     const { email, password } = req.body;
 
+    // Verifica se o email não está em branco
+    if (!email || email.trim().length === 0) {
+      return res.status(400).json({
+        msg: "Email is required",
+      });
+    }
+
+    // Verifica se a senha não está em branco
+    if (!password || password.trim().length === 0) {
+      return res.status(400).json({
+        msg: "Password is required",
+      });
+    }
+
     // Pesquisar esse usuário no banco pelo email
     const user = await UserModel.findOne({ email });
 
