@@ -1,9 +1,30 @@
 const router = require("express").Router();
 
+const cloudinary = require("cloudinary").v2;
 const BookModel = require("../models/Book.model");
 const isAuthenticated = require("../middlewares/isAuthenticated");
 const attachCurrentUser = require("../middlewares/attachCurrentUser");
 const isAdmin = require("../middlewares/isAdmin");
+const AppError = require("../errors/AppError");
+
+// Remove a imagem que foi enviada para o cloudinary
+function destroyImageInCloudinary(image) {
+    const pathParts = image.split("/");
+    const pathPartsLength = pathParts.length;
+    const folder = pathParts[pathPartsLength - 2];
+    const filename = pathParts[pathPartsLength - 1].split(".")[0];
+  
+    const publicId = `${folder}/${filename}`;
+  
+    cloudinary.uploader.destroy(publicId, (err, result) => {
+      console.log(result);
+      console.log(err);
+  
+      if (err) {
+        throw new AppError(err.message);
+      }
+    });
+}
 
 // Criar um novo livro
 router.post(
@@ -106,4 +127,63 @@ router.get("/book/:id", isAuthenticated, async (req, res) => {
       return res.status(500).json({ msg: JSON.stringify(err) });
     }
 });
+
+// Atualiza um livro
+router.patch(
+    "/book/:id",
+    isAuthenticated,
+    attachCurrentUser,
+    isAdmin,
+    async (req, res) => {
+      try {
+        const { id } = req.params;
+        const { title, synopsis, releaseYear, genre, coverImage } = req.body;
   
+        if (releaseYear && !Number(releaseYear)) {
+          return res.status(400).json({
+            msg: "ReleaseYear must be of number",
+          });
+        }
+  
+        // Veficia se o id enviado é compatível com o modelo de id do mongodb
+        if (!id.match(/^[0-9a-fA-F]{24}$/)) {
+          return res.status(404).json({ error: "Book not found" });
+        }
+  
+        const book = await BookModel.findById(id);
+        if (!book) {
+          return res.status(404).json({
+            msg: "Book not found",
+          });
+        }
+  
+        const loggedInUser = req.currentUser;
+  
+        if (book.author.toString() !== loggedInUser._id.toString()) {
+          return res.status(400).json({
+            msg: "Only the author of the book can edit it",
+          });
+        }
+  
+        const oldCoverImage = book.coverImage;
+  
+        book.title = title || book.title;
+        book.synopsis = synopsis || book.synopsis;
+        book.releaseYear = releaseYear || book.releaseYear;
+        book.genre = genre || book.genre;
+        book.coverImage = coverImage || book.coverImage;
+  
+        await book.save();
+  
+        if (coverImage) {
+          // Exluir a imagem antiga do cloudinary, se encontrar
+          destroyImageInCloudinary(oldCoverImage);
+        }
+  
+        return res.status(200).json(book);
+      } catch (err) {
+        console.error(err);
+        return res.status(500).json({ msg: JSON.stringify(err) });
+      }
+    }
+);
