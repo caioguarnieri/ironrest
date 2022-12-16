@@ -16,6 +16,7 @@ const storage = new CloudinaryStorage({
     // Na opção format podemos escolher o formato resultante da imagem que será armazenada no Cloudinary
     format: async (req, file) => "png",
     use_filename: true,
+    public_id: async (req, file) => file.filename,
   },
 });
 
