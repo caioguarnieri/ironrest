@@ -20,6 +20,19 @@ const storage = new CloudinaryStorage({
   },
 });
 
-const uploadCloud = multer({ storage: storage });
+const uploadCloud = multer({ 
+  storage: storage,
+  fileFilter: (req, file, cb) => {
+    const [type, extension] = file.mimetype.split("/");
+    if (type !== "image") {
+      cb(new AppError("File must be an image"), false);
+    }
+    if (extension !== "png") {
+      cb(new AppError("The image must be in png format"), false);
+    }
+
+    cb(null, true);
+  },
+ });
 
 module.exports = uploadCloud;
