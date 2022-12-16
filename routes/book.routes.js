@@ -79,4 +79,31 @@ router.get("/book", isAuthenticated, async (req, res) => {
       console.error(err);
       return res.status(500).json({ msg: JSON.stringify(err) });
     }
-});  
+});
+
+// Retorna apenas um livro
+router.get("/book/:id", isAuthenticated, async (req, res) => {
+    try {
+      const { id } = req.params;
+  
+      // Veficia se o id enviado é compatível com o modelo de id do mongodb
+      if (!id.match(/^[0-9a-fA-F]{24}$/)) {
+        return res.status(404).json({ error: "Book not found" });
+      }
+  
+      const book = await BookModel.findById(id).populate("author");
+      if (!book) {
+        return res.status(404).json({
+          msg: "Book not found",
+        });
+      }
+  
+      book.author.passwordHash = undefined;
+  
+      return res.status(200).json(book);
+    } catch (err) {
+      console.error(err);
+      return res.status(500).json({ msg: JSON.stringify(err) });
+    }
+});
+  
