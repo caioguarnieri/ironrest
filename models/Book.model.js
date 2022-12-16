@@ -1,7 +1,7 @@
 const { Schema, model } = require("mongoose");
 
 const BookSchema = new Schema({
-  author: { type: Schema.Types.ObjectId, ref:"User", required: true },
+  author: { type: String, required: true },
   title: { type: String, required: true, trim: true },
   synopsis: { type: String },
   releaseYear: { type: Number, required: true },
