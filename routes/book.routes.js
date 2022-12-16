@@ -187,3 +187,46 @@ router.patch(
       }
     }
 );
+
+// Remove um livro
+router.delete(
+    "/book/:id",
+    isAuthenticated,
+    attachCurrentUser,
+    isAdmin,
+    async (req, res) => {
+      try {
+        const { id } = req.params;
+  
+        // Veficia se o id enviado é compatível com o modelo de id do mongodb
+        if (!id.match(/^[0-9a-fA-F]{24}$/)) {
+          return res.status(404).json({ error: "Book not found" });
+        }
+  
+        const book = await BookModel.findById(id);
+        if (!book) {
+          return res.status(404).json({
+            msg: "Book not found",
+          });
+        }
+  
+        const loggedInUser = req.currentUser;
+  
+        if (book.author.toString() !== loggedInUser._id.toString()) {
+          return res.status(400).json({
+            msg: "Only the author of the book can delete it",
+          });
+        }
+  
+        const coverImage = book.coverImage;
+  
+        await book.delete();
+        destroyImageInCloudinary(coverImage);
+  
+        return res.status(204).json();
+      } catch (err) {
+        console.error(err);
+        return res.status(500).json({ msg: JSON.stringify(err) });
+      }
+    }
+  );
