@@ -61,10 +61,22 @@ router.post(
           coverImage,
         });
   
-        return res.status(201).json(book);
-      } catch (err) {
-        console.error(err);
-        return res.status(500).json({ msg: JSON.stringify(err) });
-      }
+            return res.status(201).json(book);
+        } catch (err) {
+            console.error(err);
+            return res.status(500).json({ msg: JSON.stringify(err) });
+        }
     }
-  );
+);
+
+// Retorna todos os livros
+router.get("/book", isAuthenticated, async (req, res) => {
+    try {
+      const books = await BookModel.find().populate("author");
+      books.forEach((book) => (book.author.passwordHash = undefined));
+      return res.status(200).json(books);
+    } catch (err) {
+      console.error(err);
+      return res.status(500).json({ msg: JSON.stringify(err) });
+    }
+});  
