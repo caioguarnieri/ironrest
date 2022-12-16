@@ -5,6 +5,7 @@ const BookModel = require("../models/Book.model");
 const isAuthenticated = require("../middlewares/isAuthenticated");
 const attachCurrentUser = require("../middlewares/attachCurrentUser");
 const isAdmin = require("../middlewares/isAdmin");
+const uploadCloud = require("../config/cloudinary.config");
 const AppError = require("../errors/AppError");
 
 // Remove a imagem que foi enviada para o cloudinary
@@ -229,4 +230,31 @@ router.delete(
         return res.status(500).json({ msg: JSON.stringify(err) });
       }
     }
-  );
+);
+
+// Realiza o upload de uma imagem no cloudinary
+router.post(
+    "/upload",
+    isAuthenticated,
+    attachCurrentUser,
+    isAdmin,
+    uploadCloud.single("coverImage"),
+    async (req, res) => {
+      try {
+        let coverImage = req.file?.path;
+  
+        if (!coverImage) {
+          return res.status(400).json({
+            msg: "CoverImage is required.",
+          });
+        }
+  
+        return res.status(201).json({ url: coverImage });
+      } catch (err) {
+        console.error(err);
+        return res.status(500).json({ msg: JSON.stringify(err) });
+      }
+    }
+);
+
+module.exports = router;
